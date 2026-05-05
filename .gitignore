@@ -36,6 +36,37 @@ yarn-error.log*
 # vercel
 .vercel
 
+house.html
+figma.md
+
+
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI agent instructions (local only)
+CLAUDE.md
+AGENTS.md
+.claude/
+
+# secrets & keys
+*.key
+*.pem
+*.cert
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
