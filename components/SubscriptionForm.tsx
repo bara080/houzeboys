@@ -1,7 +1,9 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useState } from "react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SubscribePayload {
   name: string;
@@ -9,36 +11,133 @@ interface SubscribePayload {
   phone: string;
 }
 
+type FieldName = keyof SubscribePayload;
+type Errors = Partial<Record<FieldName, string>>;
+
+// ─── Security helpers ─────────────────────────────────────────────────────────
+
+/** Strip HTML/script tags to prevent XSS in stored data */
+function sanitize(value: string): string {
+  return value.trim().replace(/<[^>]*>/g, "");
+}
+
+/** Normalize phone: keep leading + and digits only for storage */
+function normalizePhone(value: string): string {
+  const trimmed = value.trim();
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  return hasPlus ? `+${digits}` : digits;
+}
+
+// ─── Validators ───────────────────────────────────────────────────────────────
+
+function validateName(v: string): string | undefined {
+  const val = v.trim();
+  if (!val) return "Full name is required";
+  if (val.length < 2) return "Must be at least 2 characters";
+  if (val.length > 100) return "Must be under 100 characters";
+  // Unicode letters, spaces, hyphens, apostrophes, dots — handles international names
+  if (!/^[\p{L}\s'\-.]+$/u.test(val)) return "Name contains invalid characters";
+}
+
+function validateEmail(v: string): string | undefined {
+  const val = v.trim();
+  if (!val) return "Email address is required";
+  if (val.length > 254) return "Email address is too long"; // RFC 5321 limit
+  // Reject double dots, leading/trailing dots in local part
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val)) return "Enter a valid email address";
+  if (/[<>"'`]/.test(val)) return "Email contains invalid characters";
+}
+
+function validatePhone(v: string): string | undefined {
+  const val = v.trim();
+  if (!val) return "Phone number is required";
+  const digits = val.replace(/\D/g, "");
+  if (digits.length < 7) return "Phone number is too short";
+  if (digits.length > 15) return "Phone number exceeds E.164 limit"; // ITU-T E.164
+  if (!/^\+?[\d\s\-().]{7,20}$/.test(val))
+    return "Use international format: +1 555 000 0000";
+}
+
+const validators: Record<FieldName, (v: string) => string | undefined> = {
+  name: validateName,
+  email: validateEmail,
+  phone: validatePhone,
+};
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+
 async function subscribeUser(data: SubscribePayload): Promise<void> {
-  // Swap for a real endpoint:
-  // await fetch('/api/subscribe', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
+  // Replace with real endpoint, e.g.:
+  // const res = await fetch("/api/subscribe", {
+  //   method: "POST",
+  //   headers: { "Content-Type": "application/json" },
   //   body: JSON.stringify(data),
   // });
+  // if (!res.ok) throw new Error("Subscription failed");
   await new Promise((r) => setTimeout(r, 1200));
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function SubscriptionForm() {
-  const formRef = useRef<HTMLFormElement>(null);
+  const [values, setValues] = useState<SubscribePayload>({ name: "", email: "", phone: "" });
+  const [errors, setErrors] = useState<Errors>({});
+  const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
 
   const { mutate, isPending, isSuccess, isError, reset } = useMutation({
     mutationFn: subscribeUser,
   });
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function validateAll(): Errors {
+    return Object.fromEntries(
+      (Object.keys(validators) as FieldName[])
+        .map((f) => [f, validators[f](values[f])])
+        .filter(([, err]) => Boolean(err))
+    );
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    const field = name as FieldName;
+    setValues((v) => ({ ...v, [field]: value }));
+    // Re-validate in real-time only after the field has been blurred once
+    if (touched[field]) {
+      setErrors((prev) => ({ ...prev, [field]: validators[field](value) }));
+    }
+  }
+
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    const field = name as FieldName;
+    setTouched((t) => ({ ...t, [field]: true }));
+    setErrors((prev) => ({ ...prev, [field]: validators[field](value) }));
+  }
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const els = e.currentTarget.elements;
+    const allErrors = validateAll();
+    setErrors(allErrors);
+    setTouched({ name: true, email: true, phone: true });
+    if (Object.keys(allErrors).length > 0) return;
+
     mutate({
-      name: (els.namedItem("name") as HTMLInputElement).value,
-      email: (els.namedItem("email") as HTMLInputElement).value,
-      phone: (els.namedItem("phone") as HTMLInputElement).value,
+      name: sanitize(values.name),
+      email: sanitize(values.email).toLowerCase(),
+      phone: normalizePhone(sanitize(values.phone)),
     });
   }
 
-  return (
-    <div className="bg-white/[0.03] backdrop-blur-sm border border-white/10 p-8 md:p-10 rounded-3xl shadow-2xl">
-      {isSuccess ? (
+  function handleReset() {
+    reset();
+    setValues({ name: "", email: "", phone: "" });
+    setErrors({});
+    setTouched({});
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="bg-white/[0.03] backdrop-blur-sm border border-white/10 p-8 md:p-10 rounded-3xl shadow-2xl">
         <div className="text-center py-10 space-y-4">
           <div className="flex justify-center text-green-400">
             <CheckCircleIcon />
@@ -49,97 +148,204 @@ export default function SubscriptionForm() {
             releases and announcements.
           </p>
           <button
-            onClick={reset}
-            className="mt-2 text-sm text-gray-500 underline hover:text-white transition-colors"
+            onClick={handleReset}
+            className="mt-2 text-sm text-gray-500 underline hover:text-white transition-colors cursor-pointer"
           >
             Subscribe another
           </button>
         </div>
-      ) : (
-        <>
-          <h3 className="text-xl font-bold mb-6">Join Our Update List</h3>
-          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-            <InputField
-              name="name"
-              label="Full Name"
-              type="text"
-              placeholder="John Doe"
-              disabled={isPending}
-            />
-            <InputField
-              name="email"
-              label="Email Address"
-              type="email"
-              placeholder="john@example.com"
-              disabled={isPending}
-            />
-            <InputField
-              name="phone"
-              label="Phone Number"
-              type="tel"
-              placeholder="+1 (555) 000-0000"
-              disabled={isPending}
-            />
+      </div>
+    );
+  }
 
-            {isError && (
-              <p className="text-sm text-red-400 text-center">
-                Something went wrong — please try again.
-              </p>
-            )}
+  return (
+    <div className="bg-white/[0.03] backdrop-blur-sm border border-white/10 p-8 md:p-10 rounded-3xl shadow-2xl">
+      <h3 className="text-xl font-bold mb-6">Join Our Update List</h3>
 
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full bg-white text-black font-extrabold py-4 rounded-xl hover:bg-gray-200 transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isPending ? (
-                <>
-                  <Spinner />
-                  Submitting…
-                </>
-              ) : (
-                "Keep Me Updated"
-              )}
-            </button>
+      {/* noValidate: we own all validation */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <InputField
+          name="name"
+          label="Full Name"
+          type="text"
+          placeholder="John Doe"
+          autoComplete="name"
+          autoCapitalize="words"
+          maxLength={100}
+          value={values.name}
+          error={errors.name}
+          disabled={isPending}
+          onChange={handleChange}
+          onBlur={handleBlur}
+        />
+        <InputField
+          name="email"
+          label="Email Address"
+          type="email"
+          placeholder="john@example.com"
+          autoComplete="email"
+          autoCapitalize="none"
+          maxLength={254}
+          value={values.email}
+          error={errors.email}
+          disabled={isPending}
+          onChange={handleChange}
+          onBlur={handleBlur}
+        />
+        <InputField
+          name="phone"
+          label="Phone Number"
+          type="tel"
+          placeholder="+1 555 000 0000"
+          autoComplete="tel"
+          autoCapitalize="none"
+          inputMode="tel"
+          maxLength={20}
+          value={values.phone}
+          error={errors.phone}
+          disabled={isPending}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          hint="International format — include your country code"
+        />
 
-            <p className="text-[10px] text-gray-500 text-center mt-4">
-              By subscribing, you agree to receive updates. You can unsubscribe
-              anytime.
-            </p>
-          </form>
-        </>
-      )}
+        {isError && (
+          <p role="alert" className="text-sm text-red-400 text-center">
+            Something went wrong — please try again.
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={isPending}
+          className="w-full bg-white text-black font-extrabold py-4 rounded-xl hover:bg-[#d1d5db] transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {isPending ? (
+            <>
+              <Spinner />
+              Submitting…
+            </>
+          ) : (
+            "Keep Me Updated"
+          )}
+        </button>
+
+        <p className="text-[10px] text-gray-500 text-center mt-4">
+          By subscribing, you agree to receive updates. You can unsubscribe
+          anytime.
+        </p>
+      </form>
     </div>
   );
 }
+
+// ─── InputField ───────────────────────────────────────────────────────────────
 
 function InputField({
   name,
   label,
   type,
   placeholder,
+  autoComplete,
+  autoCapitalize,
+  inputMode,
+  maxLength,
+  value,
+  error,
+  hint,
   disabled,
+  onChange,
+  onBlur,
 }: {
   name: string;
   label: string;
   type: string;
   placeholder: string;
+  autoComplete?: string;
+  autoCapitalize?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
+  value: string;
+  error?: string;
+  hint?: string;
   disabled?: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
 }) {
+  const id = `field-${name}`;
+  const errId = `${id}-error`;
+  const hintId = `${id}-hint`;
+  const hasError = Boolean(error);
+
   return (
     <div>
-      <label className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-1 block">
+      <label
+        htmlFor={id}
+        className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-1 block"
+      >
         {label}
       </label>
+
       <input
+        id={id}
         name={name}
         type={type}
         placeholder={placeholder}
-        required
+        autoComplete={autoComplete}
+        autoCapitalize={autoCapitalize}
+        inputMode={inputMode}
+        maxLength={maxLength}
+        spellCheck={false}
+        value={value}
         disabled={disabled}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-white transition-all text-white placeholder:text-gray-600 disabled:opacity-50"
+        onChange={onChange}
+        onBlur={onBlur}
+        aria-invalid={hasError}
+        aria-describedby={
+          [hasError && errId, hint && hintId].filter(Boolean).join(" ") || undefined
+        }
+        className={`w-full bg-white/5 border rounded-xl px-4 py-3 outline-none transition-all duration-200 text-white placeholder:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed
+          ${hasError
+            ? "border-red-500/70 focus:border-red-400 bg-red-500/5"
+            : "border-white/10 focus:border-white"
+          }`}
       />
+
+      {hint && !hasError && (
+        <p id={hintId} className="mt-1 text-[11px] text-gray-600">
+          {hint}
+        </p>
+      )}
+
+      {hasError && (
+        <p id={errId} role="alert" className="mt-1.5 text-xs text-red-400 flex items-center gap-1.5">
+          <AlertIcon />
+          {error}
+        </p>
+      )}
     </div>
+  );
+}
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+function AlertIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
   );
 }
 
