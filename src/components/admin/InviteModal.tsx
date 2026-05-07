@@ -37,14 +37,16 @@ export default function InviteModal() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); setStatus("idle"); }}>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-white/10 text-white hover:bg-white/10 text-xs"
-        >
-          Invite User
-        </Button>
+      <DialogTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-white/10 text-white hover:bg-white/10 text-xs"
+          />
+        }
+      >
+        Invite User
       </DialogTrigger>
       <DialogContent className="bg-[#111] border-white/10 text-white">
         <DialogHeader>
