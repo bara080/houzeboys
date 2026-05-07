@@ -25,7 +25,7 @@ const socials: {
   },
   {
     label: "Apple Music",
-    href: "https://api.ffm.to/bl/e/c/houzeboys",
+    href: "https://music.apple.com/us/search?term=houzeboys",
     color: "#fc3c44",
     Icon: AppleMusicIcon,
   },
@@ -36,23 +36,11 @@ const socials: {
     Icon: InstagramIcon,
   },
   {
-    label: "TikTok",
-    href: "https://www.tiktok.com/@houzeboys",
-    color: "#69C9D0",
-    Icon: TiktokIcon,
-  },
-  {
     label: "SoundCloud",
     href: "https://soundcloud.com/houzeboys",
     color: "#FF5500",
     Icon: SoundCloudIcon,
     image: soundCloudLogo,
-  },
-  {
-    label: "Facebook",
-    href: "https://www.facebook.com/people/HouZe-Boys/61573398269002/",
-    color: "#1877F2",
-    Icon: FacebookIcon,
   },
 ];
 

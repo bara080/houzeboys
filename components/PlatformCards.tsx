@@ -1,5 +1,12 @@
 const platforms = [
   {
+    name: "Instagram",
+    label: "Follow on IG",
+    href: "https://www.instagram.com/houzeboys",
+    icon: InstagramIcon,
+    iconColor: "text-[#E4405F]",
+  },
+  {
     name: "Spotify",
     label: "Listen on Spotify",
     href: "https://open.spotify.com/artist/4Jgl4PkGfhfQ4WmkGzE5Zb",
@@ -20,13 +27,7 @@ const platforms = [
     icon: AppleMusicIcon,
     iconColor: "text-[#FA243C]",
   },
-  {
-    name: "Instagram",
-    label: "Follow on IG",
-    href: "https://www.instagram.com/houzeboys",
-    icon: InstagramIcon,
-    iconColor: "text-[#E4405F]",
-  },
+
 ];
 
 export default function PlatformCards() {
