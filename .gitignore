@@ -49,6 +49,7 @@ next-env.d.ts
 CLAUDE.md
 AGENTS.md
 .claude/
+.superpowers/
 
 # secrets & keys
 *.key
