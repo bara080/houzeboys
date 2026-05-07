@@ -68,14 +68,15 @@ const validators: Record<FieldName, (v: string) => string | undefined> = {
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 async function subscribeUser(data: SubscribePayload): Promise<void> {
-  // Replace with real endpoint, e.g.:
-  // const res = await fetch("/api/subscribe", {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(data),
-  // });
-  // if (!res.ok) throw new Error("Subscription failed");
-  await new Promise((r) => setTimeout(r, 1200));
+  const res = await fetch("/api/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? "Subscription failed");
+  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -85,7 +86,7 @@ export default function SubscriptionForm() {
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
 
-  const { mutate, isPending, isSuccess, isError, reset } = useMutation({
+  const { mutate, isPending, isSuccess, isError, error, reset } = useMutation({
     mutationFn: subscribeUser,
   });
 
@@ -211,7 +212,7 @@ export default function SubscriptionForm() {
 
         {isError && (
           <p role="alert" className="text-sm text-red-400 text-center">
-            Something went wrong — please try again.
+            {error instanceof Error ? error.message : "Something went wrong — please try again."}
           </p>
         )}
 
