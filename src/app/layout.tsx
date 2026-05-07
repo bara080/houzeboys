@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Montserrat, Geist } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import Providers from "@/components/Providers";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#0f0f0f] text-white">
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
