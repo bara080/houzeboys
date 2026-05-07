@@ -15,21 +15,21 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { role: "admin" },
-  });
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
 
   if (error) {
     console.error("[invite]", error.code);
     return NextResponse.json({ error: "Failed to send invite" }, { status: 500 });
   }
 
-  const { data: invited } = await admin.auth.admin.listUsers();
-  const invitedUser = invited?.users.find((u) => u.email === email);
-  if (invitedUser) {
-    await admin.auth.admin.updateUserById(invitedUser.id, {
-      app_metadata: { role: "admin" },
-    });
+  // Use the returned user ID directly — no listUsers() needed
+  const { error: updateError } = await admin.auth.admin.updateUserById(data.user.id, {
+    app_metadata: { role: "admin" },
+  });
+
+  if (updateError) {
+    console.error("[invite] failed to set admin role", updateError.code);
+    return NextResponse.json({ error: "Invite sent but failed to set admin role" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

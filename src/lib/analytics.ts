@@ -48,9 +48,8 @@ function sumVisitors(data: { data: { key: string; total: number }[] } | null): n
 export async function getVisitorStats(): Promise<VisitorStats> {
   const today = new Date().toISOString().slice(0, 10);
 
-  const [week, month, thirty] = await Promise.all([
+  const [week, month] = await Promise.all([
     fetchVercelAnalytics(daysAgo(7), today),
-    fetchVercelAnalytics(daysAgo(30), today),
     fetchVercelAnalytics(daysAgo(30), today),
   ]);
 
@@ -58,7 +57,7 @@ export async function getVisitorStats(): Promise<VisitorStats> {
     totalVisitors: sumVisitors(month),
     lastWeek: sumVisitors(week),
     lastMonth: sumVisitors(month),
-    last30Days: sumVisitors(thirty),
+    last30Days: sumVisitors(month),
   };
 }
 
