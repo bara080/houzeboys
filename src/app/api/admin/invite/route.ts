@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: "https://www.houzeboys.com/auth/callback",
+    redirectTo: "https://www.houzeboys.com/auth/callback?type=invite",
   });
 
   if (error) {

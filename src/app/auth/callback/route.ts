@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      const type = searchParams.get("type");
+      if (type === "invite") {
+        return NextResponse.redirect(`${origin}/set-password`);
+      }
       return NextResponse.redirect(`${origin}/admin`);
     }
   }
