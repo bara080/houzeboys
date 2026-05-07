@@ -21,10 +21,11 @@ export default function AuthCallbackPage() {
       if (accessToken && refreshToken) {
         supabase.auth
           .setSession({ access_token: accessToken, refresh_token: refreshToken })
-          .then(({ error }) => {
-            if (error) {
-              router.replace("/login?error=callback");
-            } else if (type === "invite") {
+          .then(async ({ error }) => {
+            if (error) { router.replace("/login?error=callback"); return; }
+            // Refresh to get a JWT with the latest app_metadata (role)
+            await supabase.auth.refreshSession();
+            if (type === "invite" || type === "recovery") {
               router.replace("/set-password");
             } else {
               router.replace("/admin");
@@ -41,7 +42,7 @@ export default function AuthCallbackPage() {
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
         if (error) {
           router.replace("/login?error=callback");
-        } else if (type === "invite") {
+        } else if (type === "invite" || type === "recovery") {
           router.replace("/set-password");
         } else {
           router.replace("/admin");
