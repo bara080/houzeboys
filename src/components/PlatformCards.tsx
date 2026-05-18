@@ -30,7 +30,7 @@ const platforms = [
   {
     name: "Apple Music",
     label: "Stream on Apple",
-    href: "https://api.ffm.to/bl/e/c/houzeboys",
+    href: "https://music.apple.com/us/artist/houze-boys/1801765314",
     icon: AppleMusicIcon,
     iconColor: "text-[#FA243C]",
   },
